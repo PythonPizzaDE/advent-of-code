@@ -5,7 +5,7 @@ class Shape(Enum):
     PAPER = auto()
     SCISSORS = auto()
 
-def parse_shapes(guide: str) -> list[tuple[Shape]]:
+def parse_shapes_wrong(guide: str) -> list[tuple[Shape]]:
     games = []
     for line in guide.split('\n'):
         primitive = line.split(' ')
@@ -26,6 +26,48 @@ def parse_shapes(guide: str) -> list[tuple[Shape]]:
                 second = Shape.PAPER
             case [_, 'Z']:
                 second = Shape.SCISSORS
+        games.append((first, second))
+    return games
+
+def losing_shape(shape: Shape) -> Shape:
+    match shape:
+        case Shape.ROCK:
+            return Shape.SCISSORS
+        case Shape.PAPER:
+            return Shape.ROCK
+        case Shape.SCISSORS:
+            return Shape.PAPER
+
+def winning_shape(shape: Shape) -> Shape:
+    match shape:
+        case Shape.ROCK:
+            return Shape.PAPER
+        case Shape.PAPER:
+            return Shape.SCISSORS
+        case Shape.SCISSORS:
+            return Shape.ROCK
+
+def parse_shapes_right(guide: str) -> list[tuple[Shape]]:
+    games = []
+    for line in guide.split('\n'):
+        primitive = line.split(' ')
+        first = None
+        second = None
+        match primitive:
+            case ['A', _]:
+                first = Shape.ROCK
+            case ['B', _]:
+                first = Shape.PAPER
+            case ['C', _]:
+                first = Shape.SCISSORS
+
+        match primitive:
+            case [_, 'X']:
+                second = losing_shape(first)
+            case [_, 'Y']:
+                second = first
+            case [_, 'Z']:
+                second = winning_shape(first)
         games.append((first, second))
     return games
 
@@ -69,6 +111,6 @@ def calculate_scores(games: list[tuple[Shape]]) -> int:
     return scores
 
 with open('input.txt') as file:
-    games = parse_shapes(file.read())
+    games = parse_shapes_right(file.read())
 
 print(sum(calculate_scores(games)))
