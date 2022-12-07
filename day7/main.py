@@ -4,7 +4,6 @@ from typing import Protocol
 @dataclass
 class FileSystemMember(Protocol):
     name: str
-    size: int
 
 @dataclass
 class File:
@@ -44,8 +43,12 @@ def execute(inpt: str) -> Directory:
             command = 'ls'
         elif line.startswith('$ cd'):
             command = 'cd'
-            current_directory = resolve_dir(line[5:], current_directory)
-        elif line.startswith('$ dir '):
+            directory = line[5:]
+            if directory == '/':
+                current_directory = root
+            else:
+                current_directory = resolve_dir(directory, current_directory)
+        elif line.startswith('dir '):
             resolve_dir(line[6:], current_directory)
         elif line[0].isnumeric():
             size, name = line.split(' ')
@@ -53,7 +56,53 @@ def execute(inpt: str) -> Directory:
 
     return root
 
-with open('input.example.txt') as file:
+def calculate_size(directory: Directory) -> int:
+    size = 0
+    for child in directory.files:
+        if isinstance(child, Directory):
+            size += calculate_size(child)
+            continue
+        size += child.size
+    return size
+
+def calculate_filtered_size(file_system: Directory, max_size: int = 100000) -> int:
+    size = 0
+    for child in file_system.files:
+        if isinstance(child, Directory):
+            calculated_size = calculate_size(child)
+            if calculated_size <= max_size:
+                size += calculated_size
+            size += calculate_filtered_size(child, max_size)
+    return size
+
+def find_to_delete_size(file_system: Directory, needed: int, used: int, file_system_size: int, smallest: int = None) -> int:
+    unused = file_system_size - used
+    rest = needed - unused
+    for child in file_system.files:
+        if isinstance(child, Directory):
+            size = calculate_size(child)
+            if size >= rest and size <= (smallest or file_system_size):
+                smallest = size
+            smallest = find_to_delete_size(child, needed, used, file_system_size, smallest)
+    return smallest
+
+FILE_SYSTEM_SIZE   = 70000000
+NEEDED_SPACE_TOTAL = 30000000
+
+with open('input.txt') as file:
     inpt = file.read()
 
-print(execute(inpt))
+file_system = execute(inpt)
+file_system_size = calculate_size(file_system)
+# total size
+print('total:\t', file_system_size)
+
+print()
+
+# maxed size
+print('maxed:\t', calculate_filtered_size(file_system))
+
+print()
+
+# to delete size
+print('delete:\t', find_to_delete_size(file_system, NEEDED_SPACE_TOTAL, file_system_size, FILE_SYSTEM_SIZE))
